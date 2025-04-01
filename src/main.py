@@ -35,8 +35,8 @@ def generate_page(from_path, template_path, dest_path, basepath):
     html_string = markdown_to_html_node(md_text).to_html()
 
     if basepath != "/":
-        html_string = html_string.replace('href="', 'href="{BASEPATH}')
-        html_string = html_string.replace('src="', 'src="{BASEPATH}')
+        html_string = html_string.replace('href="', f"href=\"{basepath}")
+        html_string = html_string.replace('src="', f"src=\"{basepath}")
 
     template_string = template_string.replace("{{ Title }}", title)
     template_string = template_string.replace("{{ Content }}", html_string)
