@@ -1,7 +1,7 @@
 import re
 from typing import List
 from BlockNode import BlockType, block_to_block_type
-from htmlnode import LeafNode, ParentNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 from textnode import TextNode, TextType, text_node_to_html_node
 
 
@@ -139,23 +139,6 @@ def markdown_to_blocks(md):
     return out
 
 
-def markdown_to_html_node(markdown):
-    blocks = markdown_to_blocks(markdown)
-    tags = []
-    for block in blocks:
-        block_type = block_to_block_type(block)
-        block = block.strip()
-        if not block:
-            continue
-
-        html_node = block_to_html(block, block_type)
-        if not html_node:
-            continue
-        tags.append(html_node)
-
-    return ParentNode("div", children=tags)
-
-
 def list_block_to_list_html_items(block):
     list_items = []
     for list_item in block.split("\n"):
@@ -177,6 +160,13 @@ def block_children_to_html(block):
     return leaf_nodes
 
 
+def strip_header_hashes(block):
+    no_of_hashes = block[:6].count("#")
+    block = block[no_of_hashes:]
+    block = block.lstrip()
+    return no_of_hashes, block
+
+
 def block_to_html(block, block_type):
     if block_type == BlockType.PARAGRAPH:
         tag = "p"
@@ -184,17 +174,20 @@ def block_to_html(block, block_type):
         leaf_nodes = block_children_to_html(block)
     
     if block_type == BlockType.HEADING:
-        no_of_hashes = block[:6].count("#")
+        no_of_hashes, block = strip_header_hashes(block)
         tag = f"h{no_of_hashes}"
-        block = block[no_of_hashes:]
-        block = block.lstrip()
         leaf_nodes = block_children_to_html(block)
     
     if block_type == BlockType.QUOTE:
         tag = "blockquote"
-        block = block.lstrip(">").strip()
-        leaf_nodes = block_children_to_html(block)
-    
+        leaf_nodes = []
+        lines = block.splitlines()
+        for line in lines:
+            line = line.lstrip(">").strip()
+            if not line:
+                continue
+            leaf_nodes = leaf_nodes + block_children_to_html(line)
+
     if block_type == BlockType.CODE:
         tag = "pre"
         code_content = block.strip("```")
@@ -213,3 +206,28 @@ def block_to_html(block, block_type):
         return None
 
     return ParentNode(tag, children=leaf_nodes)
+
+
+def extract_title(markdown):
+    block = markdown_to_blocks(markdown)[0]
+    block_type = block_to_block_type(block)
+    if block_type == BlockType.HEADING and not block.startswith("# "):
+        raise Exception("Markdown file needs to have a header")
+    _, block = strip_header_hashes(block)
+    return block
+
+def markdown_to_html_node(markdown) -> HTMLNode:
+    blocks = markdown_to_blocks(markdown)
+    tags = []
+    for block in blocks:
+        block_type = block_to_block_type(block)
+        block = block.strip()
+        if not block:
+            continue
+
+        html_node = block_to_html(block, block_type)
+        if not html_node:
+            continue
+        tags.append(html_node)
+
+    return ParentNode("div", children=tags)

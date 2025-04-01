@@ -1,6 +1,6 @@
 import unittest
 
-from parser import markdown_to_html_node
+from parser import extract_title, markdown_to_html_node
 
 
 class TestMarkdownToHtml(unittest.TestCase):
@@ -77,6 +77,20 @@ the **same** even with inline stuff
             "<div><blockquote>This is a blockquote</blockquote></div>",
         )
 
+    def test__multiline_blockquote(self):
+        md = """
+> "I am in fact a Hobbit in all but size."
+>
+> -- J.R.R. Tolkien
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            """<div><blockquote>"I am in fact a Hobbit in all but size."-- J.R.R. Tolkien</blockquote></div>""",
+        )
+
     def test_headings(self):
         md = """
 # Heading 1
@@ -117,6 +131,23 @@ This is **bold** text with a [link](https://example.com) and an ![image](https:/
             '<div><p>This is <b>bold</b> text with a <a href="https://example.com">link</a> and an <img src="https://example.com/image.png" alt="image" />.</p></div>',
         )
 
+
+    def test_header_is_present(self):
+        md = """
+# HEADING
+"""
+        title = extract_title(md)
+        self.assertEqual("HEADING", title)
+
+
+    def test_header_is_not_present(self):
+        md = """
+## HEADING
+"""
+        with self.assertRaises(Exception):
+            extract_title(md)
+
+    
 
 if __name__ == "__main__":
     unittest.main()
