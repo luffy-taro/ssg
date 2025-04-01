@@ -1,10 +1,11 @@
 
 class HTMLNode:
-    def __init__(self, tag=None, value=None, children=None, props=None) -> None:
+    def __init__(self, tag=None, value=None, children=None, props=None, self_closing=False) -> None:
         self.tag = tag
         self.value = value
         self.children = children
         self.props = props
+        self.self_closing = self_closing
 
     def to_html(self) -> str:
         raise NotImplementedError()
@@ -25,21 +26,27 @@ class HTMLNode:
         return all([self.tag == value.tag, self.value == value.value, self.children == value.children, self.props == value.props])
     
     def get_opening_tag(self) -> str:
+        if not self.tag:
+            return ""
         attrs = self.props_to_html()
         return f"<{self.tag}{' ' + attrs if attrs else ''}>"
     
     def get_closing_tag(self) -> str:
+        if not self.tag:
+            return ""
         return f"</{self.tag}>"
     
 
 class LeafNode(HTMLNode):
-    def __init__(self, tag=None, value="", props=None):
-      if not value:
+    def __init__(self, tag=None, value="", props=None, self_closing=False):
+      if not value and not self_closing:
           raise ValueError("value is required")
       
-      super().__init__(tag=tag, value=value, props=props)
+      super().__init__(tag=tag, value=value, props=props, self_closing=self_closing)
 
     def to_html(self):
+        if self.self_closing:
+            return f"{self.get_opening_tag().replace('>', ' />')}"
         return f"{self.get_opening_tag()}{self.value}{self.get_closing_tag()}"
     
 
